@@ -34,11 +34,13 @@ def handleClient(player_socket,player_name):
             msg=player_socket.recv(2048).decode("utf-8")
             if msg:
                 for c in  CLIENTS:
-                    c_socket=CLIENTS[c][player_socket]
+                    c_socket=CLIENTS[c]["player_socket"]
                     c_socket.send(msg.encode("utf-8"))
 
                 if msg=="Reset Game":
                     pass
+                
+                print(msg)
         except:
             continue
 
@@ -67,6 +69,9 @@ def acceptConnections():
         thread=Thread(target=handleClient,args=(player_socket,player_name))
         thread.start()
 
+        print(CLIENTS)
+    
+
 def setup():
     print("\n")
     print("\t\t\t\t\t\t*** LUDO LADDER ***")
@@ -75,6 +80,7 @@ def setup():
     global SERVER
     global PORT
     global IP_ADDRESS
+    global CLIENTS
 
     IP_ADDRESS = '127.0.0.1'
     PORT = 5000

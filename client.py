@@ -43,6 +43,9 @@ dice=None
 
 gameWindow=None
 
+def handleresetgame():
+    pass
+
 def savename():
     global playerName
     global nameEntry
@@ -83,7 +86,7 @@ def updateScore(msg):
     canvas2.itemconfigure(player_2_scorelabel,text=player_2_score)
     
 def callgameWindow():
-    global gameWindow,canvas2,screen_height,screen_width,dice,roll_btn,player_1_score,player1_name,player2_name,player_2_score,player_1_scorelabel,player_2_scorelabel
+    global gameWindow,canvas2,screen_height,screen_width,dice,roll_btn,player_1_score,player1_name,player2_name,player_2_score,player_1_scorelabel,player_2_scorelabel,roll_btn,player_turn,player_type
 
     gameWindow=Tk()
     gameWindow.title("Ludo Ladder")
@@ -114,12 +117,13 @@ def callgameWindow():
 
     dice=canvas2.create_text(screen_width/2+10,screen_height/2+150,text="\u2680",font=("helvetica",250),fill='white')
 
-    roll_btn=Button(gameWindow,text='Roll Dice',fg='black',bg='white',width=20,height=5,font=("helvetica",20),command=rollDice)
+    roll_btn=Button(gameWindow,text='Roll Dice',fg='black',bg='white',width=20,height=5,font=("helvetica",15),command=rollDice)
 
     if player_type=='player 1' and player_turn==True:
-        roll_btn.place(x=screen_width/2-100,y=screen_height/2+250)
+        roll_btn.place(x=screen_width/2,y=screen_height/2+250)
     else:
         roll_btn.pack_forget()
+    # roll_btn.place(x=screen_width/2,y=screen_height/2+250)
     
     # creating name board
     player1_label=canvas2.create_text(400,screen_height/2+150,text=player1_name,font=("helvetica",20),fill='white')
@@ -169,15 +173,16 @@ def finishing_Box():
     finishingBox.place(x=screen_width/2-60,y=screen_height/2-150)
 
 def rollDice():
-    global SERVER,roll_btn,player_turn,player_type
+    global SERVER,roll_btn,player_turn,player_type,dice
     dice_choices=["\u2680","\u2681","\u2682","\u2683","\u2684","\u2685"]
     random_value=random.choice(dice_choices)
+    
     roll_btn.destroy()
     player_turn=False
 
-    if player_type=="player1":
+    if player_type=="player 1":
         SERVER.send(f"{random_value} player 2 turn".encode("utf-8"))
-    elif player_type=="player2":
+    elif player_type=="player 2":
         SERVER.send(f"{random_value} player 1 turn".encode("utf-8"))
 
 def checkColorPosition(boxes,color):
@@ -275,9 +280,11 @@ def askPlayerName():
     nameWindow.mainloop()
 
 def recv_msg():
-    global SERVER,player1_name,player2_name
+    global SERVER,player1_name,player2_name,player_turn,player_type
     while True:
         msg=SERVER.recv(2048).decode('utf-8')
+        print(msg)
+
         if 'player_type' in msg:
             recv_message=eval(msg)
             player_type=recv_message['player_type']
@@ -285,15 +292,15 @@ def recv_msg():
         elif 'player_names' in msg:
             players=eval(msg)
             players=players['player_names']
-            print(players)
+
 
             for p in players:
 
                 if (p['type']=='player 1'):
-                    player1_name=p['player_name']
+                    player1_name=p['name']
 
                 elif (p['type']=='player 2'):
-                    player2_name=p['player_name']
+                    player2_name=p['name']
         elif('⚀' in msg):
             # Dice with value 1
             canvas2.itemconfigure(dice, text='\u2680')
@@ -319,8 +326,28 @@ def recv_msg():
             handleWin(msg)
             # Addition Activity
             updateScore(msg)
-        # elif(msg == 'reset game'):
-            # handleResetGame()
+        elif(msg == 'reset game'):
+            handleresetgame()
+        if("player 1 turn" in msg and player_type=='player 1'):
+            player_turn=True
+            roll_btn=Button(gameWindow,text='Roll Dice',fg='balck',bg='white',font=("helvetica",12),command=rollDice,width=20,height=5)
+            roll_btn.place(x=screen_width/2-80,y=screen_height/2+250)
+        
+        if("player 2 turn" in msg and player_type=='player 2'):
+            player_turn=True
+            roll_btn=Button(gameWindow,text='Roll Dice',fg='balck',bg='white',font=("helvetica",12),command=rollDice,width=20,height=5)
+            roll_btn.place(x=screen_width/2+80,y=screen_height/2+250)
+        
+        # deciding player turn
+        if "player 1 turn" in msg or 'player 2 turn' in msg:
+            diceChoices=['⚀','⚁','⚂','⚃','⚄','⚅']
+            dicevalue=diceChoices.index(msg[0])+1
+
+            if 'player 2 turn' in msg:
+                moveplayerone(dicevalue)
+            if 'player 1 turn' in msg:
+                moveplayertwo(dicevalue)
+        
 
 def setup():
     global SERVER
